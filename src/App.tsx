@@ -26,6 +26,7 @@ export function App() {
       {route.page === 'window' && <WindowPage key={route.windowId} id={route.id} windowId={route.windowId} tab={route.tab} />}
       {route.page === 'settings' && <SettingsPage />}
       <UpdateBanner />
+      {route.page !== 'window' && (
       <nav className="bottomnav" aria-label="Разделы">
         <a href="#/" className={section === 'orders' ? 'active' : ''}>
           <span className="ico">📋</span>
@@ -36,6 +37,7 @@ export function App() {
           Настройки
         </a>
       </nav>
+      )}
       <ToastHost />
     </div>
   );

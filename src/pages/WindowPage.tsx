@@ -26,15 +26,16 @@ import { VisualTab } from './window/VisualTab';
 type Tab = 'photo' | 'measures' | 'products' | 'visual' | 'drawing' | 'cutting' | 'estimate';
 
 /** Порядок вкладок повторяет порядок работы: фото → замеры → изделия → … → смета */
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'photo', label: '📷 Фото' },
-  { id: 'measures', label: '📏 Замеры' },
-  { id: 'products', label: '🧵 Изделия' },
-  { id: 'visual', label: '🖼 Визуализация' },
-  { id: 'drawing', label: '📐 Чертёж' },
-  { id: 'cutting', label: '✂️ Раскрой' },
-  { id: 'estimate', label: '💰 Смета' },
+export const WINDOW_TABS: { id: Tab; icon: string; label: string; title: string }[] = [
+  { id: 'photo', icon: '📷', label: 'Фото', title: 'Фото окна' },
+  { id: 'measures', icon: '📏', label: 'Замеры', title: 'Замеры' },
+  { id: 'products', icon: '🧵', label: 'Изделия', title: 'Изделия и карниз' },
+  { id: 'visual', icon: '🖼', label: 'Визуал', title: 'Визуализация' },
+  { id: 'drawing', icon: '📐', label: 'Чертёж', title: 'Чертёж' },
+  { id: 'cutting', icon: '✂️', label: 'Раскрой', title: 'Раскрой' },
+  { id: 'estimate', icon: '💰', label: 'Смета', title: 'Смета' },
 ];
+const TABS = WINDOW_TABS;
 
 const GROUPS: MeasureGroup[] = ['opening', 'wall', 'sill', 'radiator', 'cornice', 'product'];
 
@@ -337,17 +338,17 @@ export function WindowPage({ id, windowId, tab: routeTab }: { id: string; window
 
   return (
     <>
-      <TopBar title={win.name} sub={`Заказ № ${order.number} · ${room.name}`} back={`/order/${order.id}`} />
-      <main>
-        <nav className="tabs" aria-label="Разделы окна">
-          {TABS.map((t) => (
-            <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => goTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </nav>
-        {content[tab]()}
-      </main>
+      <TopBar title={`${TABS.find((t) => t.id === tab)!.title} · ${win.name}`} sub={`Заказ № ${order.number} · ${room.name}`} back={`/order/${order.id}`} />
+      <main>{content[tab]()}</main>
+      {/* разделы окна — всегда внизу экрана, как в обычных приложениях */}
+      <nav className="bottomnav tabbar" aria-label="Разделы окна">
+        {TABS.map((t) => (
+          <button key={t.id} className={tab === t.id ? 'active' : ''} aria-current={tab === t.id ? 'page' : undefined} onClick={() => goTab(t.id)}>
+            <span className="ico">{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </nav>
     </>
   );
 }

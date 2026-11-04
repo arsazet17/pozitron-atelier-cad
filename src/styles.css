@@ -169,8 +169,13 @@ main {
   border-top: 1px solid var(--line);
 }
 
-.bottomnav a {
+.bottomnav a,
+.bottomnav button {
   flex: 0 1 160px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -182,12 +187,14 @@ main {
   font-size: 12px;
 }
 
-.bottomnav a .ico {
+.bottomnav a .ico,
+.bottomnav button .ico {
   font-size: 20px;
   line-height: 1;
 }
 
-.bottomnav a.active {
+.bottomnav a.active,
+.bottomnav button.active {
   color: var(--ink);
   background: var(--accent-soft);
   font-weight: 600;
@@ -1278,4 +1285,109 @@ input[type='range'] {
   .print-page:last-child {
     break-after: auto;
   }
+}
+
+/* ---------- 1.0.3 ---------- */
+
+/* Нажатие на надпись не выделяет слово и не открывает поиск Google;
+   выделять можно только текст в полях ввода */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+select,
+.print-page {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Разделы окна в нижней панели: 7 кнопок на ширину телефона */
+.bottomnav.tabbar {
+  gap: 0;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.bottomnav.tabbar button {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 120px;
+  padding: 6px 1px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.bottomnav.tabbar button .ico {
+  font-size: 21px;
+}
+
+.bottomnav.tabbar button.active {
+  color: var(--ink);
+}
+
+@media (min-width: 640px) {
+  .bottomnav.tabbar button {
+    font-size: 13px;
+  }
+}
+
+.update-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(76px + var(--safe-bottom));
+  z-index: 40;
+  margin: 0 auto;
+  max-width: 560px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  background: var(--paper);
+}
+
+.how-to {
+  margin-bottom: 12px;
+}
+
+.how-to ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+.how-to li + li {
+  margin-top: 4px;
+}
+
+.tile-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tile-tabs a {
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  text-decoration: none;
+}
+
+.version-tag {
+  font-size: 12px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.window-tile .tile-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
 }

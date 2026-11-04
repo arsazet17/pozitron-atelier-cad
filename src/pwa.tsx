@@ -121,8 +121,8 @@ export function UpdateBanner() {
 
   if (!needRefresh) return null;
   return (
-    <div className="banner" style={{ margin: '12px 16px 0' }}>
-      <span>Доступна новая версия приложения.</span>
+    <div className="banner update-banner" role="alert">
+      <span>🔄 Доступна новая версия приложения.</span>
       <span className="spacer" />
       <button className="btn small accent" onClick={() => void updateServiceWorker(true)}>
         Обновить

@@ -6,6 +6,7 @@ import { completeness, resolveMeasures } from '../model/measurements';
 import { ORDER_STATUS_LABEL, type Customer, type OrderStatus, type Room, type WindowItem } from '../model/types';
 import { Seg, SelectField, TextField, TopBar, formatDate, go, toast, useOrderDoc } from '../ui';
 import { OrderEstimateCard } from './EstimateView';
+import { WINDOW_TABS } from './WindowPage';
 
 const STATUS_OPTIONS = (Object.keys(ORDER_STATUS_LABEL) as OrderStatus[]).map((s) => ({ value: s, label: ORDER_STATUS_LABEL[s] }));
 
@@ -13,8 +14,10 @@ function WindowTile({ orderId, win }: { orderId: string; win: WindowItem }) {
   const resolved = useMemo(() => resolveMeasures(win), [win]);
   const { known, total } = completeness(resolved);
   const errors = resolved.issues.filter((i) => i.level === 'error').length;
+  const base = `#/order/${orderId}/window/${win.id}`;
   return (
-    <a className="window-tile" href={`#/order/${orderId}/window/${win.id}`}>
+    <div className="window-tile">
+      <a className="tile-main" href={`${base}/${win.photoId ? 'measures' : 'photo'}`}>
       <div className="mini">
         <FacadeSchematic win={win} resolved={resolved} errorKeys={new Set()} mini />
       </div>
@@ -26,7 +29,15 @@ function WindowTile({ orderId, win }: { orderId: string; win: WindowItem }) {
         {known === total ? 'Основные размеры есть' : `Размеров: ${known} из ${total}`}
         {errors > 0 && <span style={{ color: 'var(--danger)' }}> · ошибок: {errors}</span>}
       </div>
-    </a>
+      </a>
+      <div className="tile-tabs" aria-label="Разделы окна">
+        {WINDOW_TABS.map((t) => (
+          <a key={t.id} href={`${base}/${t.id}`} title={t.title} aria-label={t.title}>
+            {t.icon}
+          </a>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -123,6 +134,9 @@ export function OrderPage({ id }: { id: string }) {
         </div>
 
         <div className="section-title">Помещения и окна</div>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          Нажмите на окно — откроются фото, замеры, изделия, визуализация, чертёж, раскрой и смета. Значки под окном ведут сразу в нужный раздел.
+        </p>
         {order.rooms.map((room) => (
           <div className="card room" key={room.id}>
             <div className="room-head">

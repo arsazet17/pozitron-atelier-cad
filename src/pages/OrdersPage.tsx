@@ -15,6 +15,54 @@ function matches(o: Order, q: string) {
   return [o.number, o.title, o.customer.name, o.customer.phone, o.customer.objectAddress].some((f) => f.toLowerCase().includes(s));
 }
 
+const HOWTO_KEY = 'howto-hidden';
+
+/** Короткая памятка: где что находится */
+function HowTo() {
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(HOWTO_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  if (hidden) return null;
+  return (
+    <div className="card how-to">
+      <div className="row">
+        <b>Как работать</b>
+        <span className="spacer" />
+        <button
+          className="btn small"
+          onClick={() => {
+            setHidden(true);
+            try {
+              localStorage.setItem(HOWTO_KEY, '1');
+            } catch {
+              /* приватный режим */
+            }
+          }}
+        >
+          Понятно
+        </button>
+      </div>
+      <ol>
+        <li>
+          <b>+ Новый заказ</b> — заказчик и адрес.
+        </li>
+        <li>В заказе нажмите на <b>окно</b>.</li>
+        <li>
+          Внизу экрана окна — разделы: 📷 Фото, 📏 Замеры, 🧵 Изделия, 🖼 Визуал, 📐 Чертёж, ✂️ Раскрой, 💰 Смета.
+        </li>
+        <li>Смета всего заказа и печать — внизу карточки заказа.</li>
+        <li>
+          Ткани, цены и реквизиты — в <b>⚙️ Настройках</b>.
+        </li>
+      </ol>
+    </div>
+  );
+}
+
 export function OrdersPage() {
   const orders = useLiveQuery(() => db.orders.orderBy('updatedAt').reverse().toArray(), []);
   const [q, setQ] = useState('');
@@ -28,9 +76,10 @@ export function OrdersPage() {
 
   return (
     <>
-      <TopBar title="ПОЗИТРОН АТЕЛЬЕ CAD" sub="Заказы" />
+      <TopBar title="ПОЗИТРОН АТЕЛЬЕ CAD" sub={`Заказы · версия ${__APP_VERSION__}`} />
       <main>
         <InstallBanner />
+        <HowTo />
         <div className="toolbar">
           <label className="field">
             <input type="search" placeholder="Поиск: номер, заказчик, телефон, адрес" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Поиск заказов" />

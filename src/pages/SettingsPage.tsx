@@ -5,8 +5,6 @@ import { DEFAULT_NUMBERING, DEFAULT_TECH, emptyProfile, formatOrderNumber, newMa
 import { MATERIAL_KIND_LABEL, type AtelierProfile, type LegalForm, type Material, type MaterialKind, type NumberingSettings, type TechSettings, type Unit } from '../model/types';
 import { NumberField, SelectField, TextField, TopBar, toast } from '../ui';
 
-declare const __APP_VERSION__: string;
-
 const LEGAL_FORMS: LegalForm[] = ['ИП', 'ООО', 'Самозанятый', 'Другое'];
 const UNITS: Unit[] = ['м', 'шт', 'компл', 'м²', 'усл'];
 const KINDS = Object.keys(MATERIAL_KIND_LABEL) as MaterialKind[];
