@@ -1118,6 +1118,7 @@ input[type='range'] {
 
 .print-pages {
   display: flex;
+  overflow-x: hidden;
   flex-direction: column;
   align-items: center;
   gap: 16px;
@@ -1125,7 +1126,8 @@ input[type='range'] {
 }
 
 .print-page {
-  width: min(100%, var(--page-w));
+  width: var(--page-w);
+  flex: none;
   background: #fff;
   color: #111;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
@@ -1144,6 +1146,7 @@ input[type='range'] {
 }
 
 .print-page.flow {
+  min-height: var(--page-h);
   padding: 12mm 14mm;
   font-size: 11pt;
 }
@@ -1267,12 +1270,16 @@ input[type='range'] {
   .print-pages {
     display: block;
     padding: 0;
+    zoom: 1 !important;
   }
   .print-page {
     width: var(--page-w);
     box-shadow: none;
     break-after: page;
     margin: 0;
+  }
+  .print-page.flow {
+    min-height: 0;
   }
   .print-page.sheet {
     height: var(--page-h);

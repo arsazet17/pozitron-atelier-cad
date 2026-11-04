@@ -275,6 +275,12 @@ export function PrintPage({ id, doc, windowId }: { id: string; doc: string; wind
   const profile = useLiveQuery(getProfile, []) ?? emptyProfile();
   const [format, setFormat] = useState<SheetFormat>(savedFormat);
   const photosReady = useLiveQuery(() => db.photos.count(), []);
+  const [viewW, setViewW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const on = () => setViewW(window.innerWidth);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
 
   useEffect(() => {
     void getOrder(id).then((o) => setOrder(o ?? null));
@@ -345,7 +351,13 @@ export function PrintPage({ id, doc, windowId }: { id: string; doc: string; wind
           <span className="small muted">Альбомная ориентация. Для PDF выберите в окне печати «Сохранить как PDF».</span>
         </div>
       </div>
-      <div className="print-pages">{pages}</div>
+      {/* предпросмотр: лист в настоящем размере, уменьшенный под ширину экрана (как в PDF) */}
+      <div className="print-pages" style={{ zoom: Math.min(1, (viewW - 16) / ((SW * 96) / 25.4)) }}>
+        {pages}
+      </div>
+      <p className="no-print small muted" style={{ textAlign: 'center', padding: '0 16px 32px' }}>
+        Лист показан целиком; чтобы рассмотреть, увеличьте двумя пальцами.
+      </p>
     </div>
   );
 }
