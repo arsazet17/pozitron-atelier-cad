@@ -53,6 +53,8 @@ export interface ProductCalc {
   tapeLength?: Mm;
   /** Римская: реек */
   rods?: number;
+  /** Нитки, мм (ориентировочно: длина всех строчек × 3) */
+  threadLength?: Mm;
   /** Площадь готового изделия, м² */
   area?: number;
   warnings: string[];
@@ -227,6 +229,15 @@ function fabricUse(
   };
 }
 
+/** Нитки к строчкам: боковые подгибы, низ, строчки по верху/кулисам и швы стачивания; расход нитки ≈ 3 длины строчки */
+const THREAD_FACTOR = 3;
+function threadFor(panels: number, cutW: Mm, cutL: Mm, strips: number, topLines: number, steps: string[]): Mm {
+  const perPanel = 2 * cutL + cutW + topLines * cutW + (strips - 1) * cutL;
+  const total = roundUp(panels * perPanel * THREAD_FACTOR, 10000);
+  steps.push(`Нитки: строчки ${m(panels * perPanel)} м × ${THREAD_FACTOR} = около ${m(total)} м.`);
+  return total;
+}
+
 export function calcProduct(p: Product, ctx: CalcContext): ProductCalc {
   const tech: TechSettings = { ...ctx.tech, ...p.tech };
   const warnings: string[] = [];
@@ -269,6 +280,7 @@ export function calcProduct(p: Product, ctx: CalcContext): ProductCalc {
     const tape = roundUp(n * (cutW - tech.sideHem) + n * 100, 100);
     out.tapeLength = tape;
     steps.push(`Шторная лента: ${n} × (${fmt(cutW)} − ${fmt(tech.sideHem)}) + запас 100 мм на полотно = ${m(tape)} м.`);
+    out.threadLength = threadFor(n, cutW, cutL, f.strips, 2, steps);
     if (K < 1.5) warnings.push(`Коэффициент сборки ×${dec(K)} — складки будут почти незаметны (обычно 1,5–3).`);
   } else if (p.type === 'roman') {
     const panelW = W / n;
@@ -282,6 +294,7 @@ export function calcProduct(p: Product, ctx: CalcContext): ProductCalc {
     const f = fabricUse('fabric', fabric, 1500, n, cutW, cutL, tech, warnings, steps, false);
     out.fabric = f.use;
     out.stripsPerPanel = f.strips;
+    out.threadLength = threadFor(n, cutW, cutL, f.strips, 1 + rods, steps);
   } else {
     // Рулонная: полотно цельное, ширина не больше ширины рулона ткани
     const panelW = W / n;

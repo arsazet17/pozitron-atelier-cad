@@ -20,11 +20,15 @@ const PRODUCT_DEFAULTS: Record<ProductType, Pick<Product, 'panels' | 'fullness' 
   roller: { panels: 1, fullness: 1, color: '#d9d3c5', opacity: 0.95 },
 };
 
+export const DEFAULT_ESTIMATE_NOTE = 'Стоимость указана за готовые изделия: ткань, пошив и навеска на карниз.';
+export const DEFAULT_ESTIMATE_FOOTER = 'Расчёт предварительный. Окончательная стоимость определяется после контрольного замера и согласования тканей.';
+
 export function newProduct(type: ProductType): Product {
   return {
     id: uid(),
     type,
     name: PRODUCT_TYPE_LABEL[type].replace(/ \(.*\)/, ''),
+    heading: type === 'classic' || type === 'tulle' ? 'tape' : undefined,
     ...PRODUCT_DEFAULTS[type],
     tech: {},
     note: '',
@@ -48,6 +52,8 @@ export function normalizeOrder(o: Order): Order {
     extraLines: o.extraLines ?? [],
     discountPercent: o.discountPercent ?? 0,
     priceOverrides: o.priceOverrides ?? {},
+    estimateNote: o.estimateNote ?? DEFAULT_ESTIMATE_NOTE,
+    estimateFooter: o.estimateFooter ?? DEFAULT_ESTIMATE_FOOTER,
     rooms: o.rooms.map((r) => ({ ...r, windows: r.windows.map(normalizeWindow) })),
   };
 }
@@ -104,6 +110,8 @@ export function newOrder(number: string): Order {
     extraLines: [],
     discountPercent: 0,
     priceOverrides: {},
+    estimateNote: DEFAULT_ESTIMATE_NOTE,
+    estimateFooter: DEFAULT_ESTIMATE_FOOTER,
     createdAt: now,
     updatedAt: now,
   };

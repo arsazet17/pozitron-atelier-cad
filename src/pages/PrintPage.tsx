@@ -1,12 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { db, getOrder, getProfile } from '../db';
 import { CuttingLayout } from '../drawing/CuttingLayout';
 import { renderProducts } from '../drawing/curtains';
 import { PhotoScene, photoMapping } from '../drawing/PhotoScene';
 import { DrawingSheet, SHEET_SIZE, type SheetFormat } from '../drawing/Sheet';
 import { useMaterials, usePhoto, useTech } from '../hooks';
-import { money, orderEstimate, qtyText, type OrderEstimate, type WindowEstimate } from '../model/estimate';
+import { clientEstimate, money, orderEstimate, qtyText, type ClientEstimate, type OrderEstimate, type WindowEstimate } from '../model/estimate';
 import { emptyProfile, executorName, signerShort } from '../model/factory';
 import { formatMm } from '../model/measurements';
 import { ORDER_STATUS_LABEL, PRODUCT_TYPE_LABEL, type AtelierProfile, type Order } from '../model/types';
@@ -22,9 +22,10 @@ import { savedFormat } from './window/DrawingTab';
 const DOC_TITLE: Record<string, string> = {
   drawing: 'Чертёж',
   cutting: 'Карта раскроя',
-  estimate: 'Смета',
+  client: 'Предварительный расчёт стоимости',
+  estimate: 'Подробная смета',
   production: 'Комплект для производства',
-  all: 'Комплект документов по заказу',
+  all: 'Предварительный расчёт стоимости',
 };
 
 const m = (mm: number) => (mm / 1000).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -56,10 +57,116 @@ function DocHeader({ profile, order, title }: { profile: AtelierProfile; order: 
   );
 }
 
+const rub = (n: number) => n.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ₽';
+
+/** Смета по готовым изделиям — документ для клиента */
+function ClientEstimateDoc({ est, order, profile }: { est: ClientEstimate; order: Order; profile: AtelierProfile }) {
+  const extraNo = est.rooms.length + 1;
+  return (
+    <section className="print-page flow">
+      <DocHeader profile={profile} order={order} title="Предварительный расчёт стоимости" />
+      {order.estimateNote && <p className="doc-p doc-note">{order.estimateNote}</p>}
+      <table className="table doc-table client-table">
+        <thead>
+          <tr>
+            <th style={{ width: '9%' }}>№</th>
+            <th>Наименование и описание</th>
+            <th style={{ width: '16%' }}>Кол-во</th>
+            <th className="r" style={{ width: '16%' }}>
+              Стоимость
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {est.rooms.map((r, ri) => (
+            <Fragment key={r.room.id}>
+              <tr className="group-row">
+                <td>{ri + 1}.</td>
+                <td colSpan={3}>{r.room.name}</td>
+              </tr>
+              {r.groups.map((g, gi) => (
+                <tr key={g.key}>
+                  <td>
+                    {ri + 1}.{gi + 1}.
+                  </td>
+                  <td>
+                    <b>{g.title}</b>
+                    {g.description.map((d, i) => (
+                      <div key={i} className="doc-desc">
+                        {d}
+                      </div>
+                    ))}
+                  </td>
+                  <td>{g.qtyText}</td>
+                  <td className="r">
+                    <b>{g.missing ? 'по запросу' : rub(g.sum)}</b>
+                  </td>
+                </tr>
+              ))}
+              <tr className="subtotal-row">
+                <td />
+                <td colSpan={2}>Итого: {r.room.name.toLowerCase()}</td>
+                <td className="r">{rub(r.total)}</td>
+              </tr>
+            </Fragment>
+          ))}
+          {est.extra.length > 0 && (
+            <tr className="group-row">
+              <td>{extraNo}.</td>
+              <td colSpan={3}>Фурнитура и дополнительные работы</td>
+            </tr>
+          )}
+          {est.extra.map((l, i) => (
+            <tr key={l.key}>
+              <td>
+                {extraNo}.{i + 1}.
+              </td>
+              <td>
+                <b>{l.name}</b>
+              </td>
+              <td>
+                {qtyText(l.qty)} {l.unit}
+              </td>
+              <td className="r">
+                <b>{rub(l.sum)}</b>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="doc-totals">
+        {est.discount !== 0 && (
+          <>
+            <div>
+              <span>Сумма</span>
+              <span>{rub(est.subtotal)}</span>
+            </div>
+            <div>
+              <span>{est.discount > 0 ? `Скидка ${est.discountPercent}%` : `Наценка ${-est.discountPercent}%`}</span>
+              <span>
+                {est.discount > 0 ? '−' : '+'}
+                {rub(Math.abs(est.discount))}
+              </span>
+            </div>
+          </>
+        )}
+        <div className="grand">
+          <span>ИТОГО</span>
+          <span>{rub(est.total)}</span>
+        </div>
+      </div>
+      {order.estimateFooter && <p className="doc-p doc-note">{order.estimateFooter}</p>}
+      <div className="doc-sign">
+        <div>Исполнитель ____________________ {signerShort(profile)}</div>
+      </div>
+    </section>
+  );
+}
+
 function EstimateDoc({ est, order, profile }: { est: OrderEstimate; order: Order; profile: AtelierProfile }) {
   return (
     <section className="print-page flow">
-      <DocHeader profile={profile} order={order} title="Смета" />
+      <DocHeader profile={profile} order={order} title="Подробная смета" />
       <table className="table doc-table">
         <thead>
           <tr>
@@ -287,6 +394,7 @@ export function PrintPage({ id, doc, windowId }: { id: string; doc: string; wind
   }, [id]);
 
   const est = useMemo(() => (order ? orderEstimate(order, map, tech) : undefined), [order, map, tech]);
+  const client = useMemo(() => (order ? clientEstimate(order, map, tech) : undefined), [order, map, tech]);
   const { w: SW, h: SH } = SHEET_SIZE[format];
 
   // Имя PDF при «Сохранить как PDF» берётся из заголовка страницы:
@@ -314,12 +422,14 @@ export function PrintPage({ id, doc, windowId }: { id: string; doc: string; wind
   );
 
   const pages: ReactNode[] = [];
-  if (doc === 'estimate' || doc === 'all') pages.push(<EstimateDoc key="est" est={est} order={order} profile={profile} />);
+  // «Клиенту»: смета по готовым изделиям + визуализация + чертёж с размерами (без раскроя и цен материалов)
+  if ((doc === 'client' || doc === 'all') && client) pages.push(<ClientEstimateDoc key="client" est={client} order={order} profile={profile} />);
+  if (doc === 'estimate') pages.push(<EstimateDoc key="est" est={est} order={order} profile={profile} />);
   for (const w of windows) {
     if (doc === 'all') pages.push(<VisualDoc key={'v' + w.window.id} w={w} order={order} profile={profile} />);
     if (doc === 'drawing' || doc === 'production' || doc === 'all') pages.push(sheet(w));
     if (doc === 'production') pages.push(<SpecDoc key={'s' + w.window.id} w={w} order={order} profile={profile} />);
-    if (doc === 'cutting' || doc === 'production' || doc === 'all') pages.push(<CuttingDoc key={'c' + w.window.id} w={w} order={order} profile={profile} />);
+    if (doc === 'cutting' || doc === 'production') pages.push(<CuttingDoc key={'c' + w.window.id} w={w} order={order} profile={profile} />);
   }
 
   const back = windowId ? `/order/${order.id}/window/${windowId}/${doc === 'drawing' ? 'drawing' : 'cutting'}` : `/order/${order.id}`;

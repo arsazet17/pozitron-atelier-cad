@@ -3,8 +3,8 @@ import { useMaterials, useTech } from '../../hooks';
 import { bracketCount, calcProduct, productSize, type ProductCalc } from '../../model/calc';
 import { newProduct } from '../../model/factory';
 import { formatMm } from '../../model/measurements';
-import { MATERIAL_KIND_LABEL, PRODUCT_TYPE_LABEL, type Material, type MaterialKind, type Product, type ProductType, type TechSettings } from '../../model/types';
-import { NumberField, Seg, TextField } from '../../ui';
+import { HEADING_LABEL, MATERIAL_KIND_LABEL, PRODUCT_TYPE_LABEL, type HeadingType, type Material, type MaterialKind, type Product, type ProductType, type TechSettings } from '../../model/types';
+import { NumberField, Seg, SelectField, TextField } from '../../ui';
 import type { TabProps } from './common';
 
 const TYPES: ProductType[] = ['classic', 'tulle', 'roman', 'roller'];
@@ -65,6 +65,12 @@ export function CalcSummary({ calc }: { calc: ProductCalc }) {
               <b className="num">{m2(calc.tapeLength)} м</b>
             </div>
           )}
+          {calc.threadLength !== undefined && (
+            <div>
+              <span>Нитки (ориентир.)</span>
+              <b className="num">{Math.round(calc.threadLength / 1000)} м</b>
+            </div>
+          )}
           {calc.rods !== undefined && (
             <div>
               <span>Рейки</span>
@@ -103,6 +109,15 @@ function ProductCard({ p, calc, list, tech, resolved, onChange, onRemove }: { p:
       </div>
       <div className="grid2">
         <TextField label="Название" value={p.name} onChange={(name) => onChange({ name })} />
+        <NumberField label="Цена готового изделия" suffix="₽" placeholder="для сметы по готовым изделиям" value={p.price} onChange={(price) => onChange({ price: price !== undefined && price >= 0 ? price : undefined })} />
+        {curtain && (
+          <SelectField
+            label="Обработка верха"
+            value={p.heading ?? 'tape'}
+            options={(Object.keys(HEADING_LABEL) as HeadingType[]).map((h) => ({ value: h, label: HEADING_LABEL[h][0].toUpperCase() + HEADING_LABEL[h].slice(1) }))}
+            onChange={(heading) => onChange({ heading })}
+          />
+        )}
         <label className="field">
           <span>Полотен</span>
           <div className="stepper">
@@ -129,6 +144,7 @@ function ProductCard({ p, calc, list, tech, resolved, onChange, onRemove }: { p:
         <MatSelect label="Ткань" kinds={['fabric']} list={list} value={p.fabricId} onChange={(fabricId) => onChange({ fabricId })} />
         {p.type === 'classic' && <MatSelect label="Подкладка" kinds={['lining']} list={list} value={p.liningId} onChange={(liningId) => onChange({ liningId })} />}
         {curtain && <MatSelect label="Шторная лента" kinds={['tape']} list={list} value={p.tapeId} onChange={(tapeId) => onChange({ tapeId })} />}
+        {p.type !== 'roller' && <MatSelect label="Нитки" kinds={['fitting']} list={list} value={p.threadId} onChange={(threadId) => onChange({ threadId })} />}
         <MatSelect label="Пошив / изготовление" kinds={['work']} list={list} value={p.sewingId} onChange={(sewingId) => onChange({ sewingId })} />
       </div>
       <details className="tech-details">

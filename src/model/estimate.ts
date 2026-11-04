@@ -1,6 +1,6 @@
 import { bracketCount, calcProduct, type ProductCalc } from './calc';
 import { resolveMeasures, type ResolvedMeasures } from './measurements';
-import type { Material, Order, Product, Room, TechSettings, WindowItem } from './types';
+import { HEADING_LABEL, type Material, type Order, type Product, type Room, type TechSettings, type WindowItem } from './types';
 
 /**
  * Смета собирается из расчёта изделий и справочника цен.
@@ -91,6 +91,12 @@ export function windowEstimate(
       const qty = mat?.unit === 'м' ? calc.tapeLength / 1000 : n;
       lines.push(line(`${p.id}:tape`, 'Фурнитура', `${mat?.name ?? 'Тесьма'} — ${p.name}`, mat, qty, overrides));
     }
+    if (p.threadId && calc.threadLength) {
+      const mat = materials.get(p.threadId);
+      // нитки в метрах; если в справочнике катушки (шт) — одна катушка на изделие
+      const qty = mat?.unit === 'м' ? calc.threadLength / 1000 : 1;
+      lines.push(line(`${p.id}:thread`, 'Фурнитура', `${mat?.name ?? 'Нитки'} — ${p.name}`, mat, qty, overrides, mat?.unit === 'м' ? 'ориентировочно, по длине строчек' : undefined));
+    }
     if (p.sewingId && calc.finishedWidth && calc.finishedHeight) {
       const mat = materials.get(p.sewingId);
       let qty = 1;
@@ -154,4 +160,115 @@ export function money(n: number): string {
 
 export function qtyText(n: number): string {
   return n.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+}
+
+// ---------- Смета по готовым изделиям (для клиента) ----------
+
+export interface ClientItem {
+  windowId: string;
+  windowName: string;
+  productId: string;
+  panels: number;
+  corniceLength?: number;
+  price?: number;
+  /** Сумма по подробной смете для этого изделия — подсказка при вводе цены */
+  detailedSum: number;
+}
+
+export interface ClientGroup {
+  key: string;
+  title: string;
+  /** «3 полотна» / «1 шт» */
+  qtyText: string;
+  description: string[];
+  sum: number;
+  items: ClientItem[];
+  /** Сколько изделий в группе без цены */
+  missing: number;
+}
+
+export interface ClientRoom {
+  room: Room;
+  groups: ClientGroup[];
+  total: number;
+}
+
+export interface ClientEstimate {
+  rooms: ClientRoom[];
+  extra: EstimateLine[];
+  subtotal: number;
+  discountPercent: number;
+  discount: number;
+  total: number;
+  missing: number;
+}
+
+export function plural(n: number, one: string, few: string, many: string): string {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
+
+const meters = (mm: number) => (mm / 1000).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' м';
+const panelsText = (n: number) => `${n} ${plural(n, 'полотно', 'полотна', 'полотен')}`;
+
+/**
+ * Одинаковые изделия одной комнаты (портьеры одной высоты, складки и сборки
+ * на разных карнизах) объединяются в одну строку, как в рукописном расчёте:
+ * «Портьеры — 3 полотна. На карниз 5,92 м — 2 полотна; на карниз 1,60 м — 1 полотно».
+ */
+export function clientEstimate(order: Order, materials: Map<string, Material>, tech: TechSettings): ClientEstimate {
+  const detailed = orderEstimate(order, materials, tech);
+  const rooms: ClientRoom[] = [];
+  for (const room of order.rooms) {
+    const groups = new Map<string, ClientGroup>();
+    for (const we of detailed.windows.filter((w) => w.room.id === room.id)) {
+      const cl = we.resolved.values.corniceLength?.value;
+      for (const { product: p, calc } of we.products) {
+        const curtain = p.type === 'classic' || p.type === 'tulle';
+        const n = Math.max(1, Math.round(p.panels));
+        const fabric = p.fabricId ? materials.get(p.fabricId) : undefined;
+        const H = calc.finishedHeight;
+        const W = calc.finishedWidth;
+        const key = [p.type, p.name.trim().toLowerCase(), curtain ? H : `${W}x${H}`, p.heading ?? '', curtain ? p.fullness : '', p.fabricId ?? ''].join('|');
+        let g = groups.get(key);
+        if (!g) {
+          const desc: string[] = [];
+          if (curtain) {
+            const parts = [`Высота готового изделия ${H ? meters(H) : '___ м'}`];
+            if (p.heading) parts.push(HEADING_LABEL[p.heading]);
+            parts.push(`коэффициент сборки ${p.fullness.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`);
+            desc.push(parts.join(', ') + '.');
+          } else {
+            desc.push(`Размер готового изделия ${W ? meters(W).replace(' м', '') : '___'} × ${H ? meters(H) : '___ м'}.`);
+          }
+          if (fabric) desc.push(`Ткань: ${fabric.name}${fabric.article ? ` (арт. ${fabric.article})` : ''}.`);
+          g = { key, title: p.name.trim() || 'Изделие', qtyText: '', description: desc, sum: 0, items: [], missing: 0 };
+          groups.set(key, g);
+        }
+        const detailedSum = we.lines.filter((l) => l.key.startsWith(p.id + ':')).reduce((s, l) => s + l.sum, 0);
+        g.items.push({ windowId: we.window.id, windowName: we.window.name, productId: p.id, panels: n, corniceLength: cl, price: p.price, detailedSum: round2(detailedSum) });
+        if (p.price === undefined) g.missing++;
+        else g.sum = round2(g.sum + p.price);
+      }
+    }
+    for (const g of groups.values()) {
+      const isCurtain = !g.key.startsWith('roman') && !g.key.startsWith('roller');
+      const total = g.items.reduce((s, i) => s + i.panels, 0);
+      g.qtyText = isCurtain ? panelsText(total) : `${g.items.reduce((s, i) => s + i.panels, 0)} шт`;
+      if (isCurtain) {
+        g.description.push(g.items.map((i) => `на карниз ${i.corniceLength ? meters(i.corniceLength) : '___ м'} — ${panelsText(i.panels)}`).join('; ').replace(/^н/, 'Н') + '.');
+      }
+    }
+    const list = [...groups.values()];
+    if (list.length) rooms.push({ room, groups: list, total: round2(list.reduce((s, g) => s + g.sum, 0)) });
+  }
+  const extra = detailed.extra;
+  const missing = rooms.reduce((s, r) => s + r.groups.reduce((a, g) => a + g.missing, 0), 0);
+  const subtotal = round2(rooms.reduce((s, r) => s + r.total, 0) + extra.reduce((s, l) => s + l.sum, 0));
+  const discount = round2((subtotal * (order.discountPercent || 0)) / 100);
+  return { rooms, extra, subtotal, discountPercent: order.discountPercent || 0, discount, total: round2(subtotal - discount), missing };
 }

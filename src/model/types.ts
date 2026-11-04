@@ -90,10 +90,28 @@ export interface TechSettings {
   romanPocket: Mm;
 }
 
+/** Обработка верха штор */
+export type HeadingType = 'tape' | 'bow' | 'pencil' | 'wave' | 'eyelets' | 'loops';
+
+export const HEADING_LABEL: Record<HeadingType, string> = {
+  tape: 'на шторной ленте',
+  bow: 'бантовая складка',
+  pencil: 'карандашная складка',
+  wave: 'складка «волна»',
+  eyelets: 'на люверсах',
+  loops: 'на петлях',
+};
+
 export interface Product {
   id: string;
   type: ProductType;
   name: string;
+  /** Обработка верха (для портьер и тюля) */
+  heading?: HeadingType;
+  /** Цена готового изделия для сметы по готовым изделиям, ₽ (ткань, пошив, навеска) */
+  price?: number;
+  /** Нитки — для подробной сметы */
+  threadId?: string;
   /** Количество полотен */
   panels: number;
   /** Коэффициент сборки */
@@ -185,6 +203,10 @@ export interface Order {
   discountPercent: number;
   /** Цены, исправленные вручную в смете: ключ строки → цена */
   priceOverrides: Record<string, number>;
+  /** Пояснение под заголовком сметы по готовым изделиям */
+  estimateNote: string;
+  /** Примечание в конце сметы */
+  estimateFooter: string;
   createdAt: number;
   updatedAt: number;
 }
