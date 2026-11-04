@@ -283,6 +283,20 @@ export function PrintPage({ id, doc, windowId }: { id: string; doc: string; wind
   const est = useMemo(() => (order ? orderEstimate(order, map, tech) : undefined), [order, map, tech]);
   const { w: SW, h: SH } = SHEET_SIZE[format];
 
+  // Имя PDF при «Сохранить как PDF» берётся из заголовка страницы:
+  // «Чертёж — заказ 000002 — Пашкова Наталья — Окно 1»
+  useEffect(() => {
+    if (!order) return;
+    const win = windowId ? order.rooms.flatMap((r) => r.windows).find((w) => w.id === windowId) : undefined;
+    const surname = order.customer.name.trim().split(/\s+/).slice(0, 2).join(' ');
+    const parts = [DOC_TITLE[doc] ?? 'Документы', `заказ ${order.number}`, surname, win?.name].filter(Boolean);
+    const prev = document.title;
+    document.title = parts.join(' — ').replace(/[\\/:*?"<>|]/g, '');
+    return () => {
+      document.title = prev;
+    };
+  }, [order, doc, windowId]);
+
   if (order === undefined || !est || photosReady === undefined) return <TopBar title="Готовлю документы…" back="/" />;
   if (order === null) return <TopBar title="Заказ не найден" back="/" />;
 
