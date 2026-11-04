@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { createOrder, db } from '../db';
+import { createOrder, db, deleteOrder } from '../db';
 import { ORDER_STATUS_LABEL, type Order } from '../model/types';
-import { TopBar, formatDate, go } from '../ui';
+import { TopBar, formatDate, go, toast } from '../ui';
 import { InstallBanner } from '../pwa';
 
 function windowCount(o: Order) {
@@ -74,6 +74,13 @@ export function OrdersPage() {
 
   const list = (orders ?? []).filter((o) => matches(o, q.trim()));
 
+  const remove = async (o: Order) => {
+    const who = o.customer.name || o.title || 'заказчик не указан';
+    if (!confirm(`Удалить заказ № ${o.number} (${who}) со всеми окнами, фото и сметой? Это нельзя отменить.`)) return;
+    await deleteOrder(o.id);
+    toast(`Заказ № ${o.number} удалён`);
+  };
+
   return (
     <>
       <TopBar title="ПОЗИТРОН АТЕЛЬЕ CAD" sub={`Заказы · версия ${__APP_VERSION__}`} />
@@ -110,6 +117,19 @@ export function OrdersPage() {
             <a key={o.id} className="card order-item" href={`#/order/${o.id}`}>
               <div className="row">
                 <span className="no">№ {o.number}</span>
+                <button
+                  className="trash-btn"
+                  aria-label={`Удалить заказ № ${o.number}`}
+                  title="Удалить заказ"
+                  onClick={(e) => {
+                    // кнопка внутри карточки: не открывать заказ
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void remove(o);
+                  }}
+                >
+                  🗑
+                </button>
                 <span className="spacer" />
                 <span className={'badge' + (o.status === 'approved' || o.status === 'done' ? ' ok' : '')}>{ORDER_STATUS_LABEL[o.status]}</span>
               </div>
