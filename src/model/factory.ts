@@ -109,9 +109,24 @@ export function newOrder(number: string): Order {
   };
 }
 
+/** Исполнитель по умолчанию — пока реквизиты не введены в настройках */
+export const DEFAULT_EXECUTOR = 'ИП Пашкова Наталья Евгеньевна';
+export const DEFAULT_SIGNER = 'Пашкова Н. Е.';
+
+export function executorName(p: Pick<AtelierProfile, 'name'>): string {
+  return p.name.trim() || DEFAULT_EXECUTOR;
+}
+
+/** «Пашкова Наталья Евгеньевна» → «Пашкова Н. Е.» для подписи */
+export function signerShort(p: Pick<AtelierProfile, 'director'>): string {
+  const parts = p.director.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return DEFAULT_SIGNER;
+  return [parts[0], ...parts.slice(1, 3).map((x) => x[0].toUpperCase() + '.')].join(' ');
+}
+
 export function emptyProfile(): AtelierProfile {
   return {
-    name: '',
+    name: DEFAULT_EXECUTOR,
     legalForm: 'ИП',
     inn: '',
     kpp: '',
@@ -121,7 +136,7 @@ export function emptyProfile(): AtelierProfile {
     bik: '',
     account: '',
     corrAccount: '',
-    director: '',
+    director: 'Пашкова Наталья Евгеньевна',
     authority: '',
     phone: '',
     email: '',

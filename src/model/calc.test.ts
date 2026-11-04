@@ -109,3 +109,12 @@ describe('смета', () => {
     expect(est.total).toBe(Math.round((15560 - 1556) * 100) / 100);
   });
 });
+
+describe('исполнитель', async () => {
+  const { executorName, signerShort } = await import('./factory');
+  it('по умолчанию — ИП Пашкова', () => {
+    expect(executorName({ name: '' })).toBe('ИП Пашкова Наталья Евгеньевна');
+    expect(signerShort({ director: '' })).toBe('Пашкова Н. Е.');
+    expect(signerShort({ director: 'Пашкова Наталья Евгеньевна' })).toBe('Пашкова Н. Е.');
+  });
+});

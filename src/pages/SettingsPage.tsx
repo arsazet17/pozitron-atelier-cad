@@ -174,7 +174,7 @@ export function SettingsPage() {
               Вводятся один раз и подставляются в договоры и документы.
             </p>
             <div className="grid2">
-              <TextField label="Наименование" placeholder={isOrg ? 'ООО «Позитрон»' : 'ИП Иванов Иван Иванович'} value={p.name} onChange={(name) => setProfile({ name })} />
+              <TextField label="Наименование" placeholder={isOrg ? 'ООО «…»' : 'ИП Пашкова Наталья Евгеньевна'} value={p.name} onChange={(name) => setProfile({ name })} />
               <SelectField label="Форма" value={p.legalForm} options={LEGAL_FORMS.map((f) => ({ value: f, label: f }))} onChange={(legalForm) => setProfile({ legalForm })} />
               <TextField label="ИНН" inputMode="numeric" value={p.inn} onChange={(inn) => setProfile({ inn })} />
               {isOrg && <TextField label="КПП" inputMode="numeric" value={p.kpp} onChange={(kpp) => setProfile({ kpp })} />}

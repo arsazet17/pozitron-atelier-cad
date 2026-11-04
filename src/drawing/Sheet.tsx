@@ -4,6 +4,7 @@ import type { ResolvedMeasures } from '../model/measurements';
 import type { AtelierProfile, MeasureKey, Order, Product, Room, WindowItem } from '../model/types';
 import { FacadeSchematic, facadeBounds, type DrawnProduct } from './FacadeSchematic';
 import { facadeGeometry } from './geometry';
+import { executorName } from '../model/factory';
 
 /**
  * Лист чертежа: рамка, вид спереди, вид сбоку, примечания и штамп.
@@ -238,7 +239,7 @@ export function DrawingSheet({ order, room, win, resolved, items, profile, forma
       {/* штамп */}
       <g>
         <rect x={sx0} y={sy0} width={stamp.w} height={stamp.h} fill="#fff" stroke="#000" strokeWidth={0.7} />
-        {cell(sx0, sy0, 185, 10, 'Исполнитель', profile.name || 'ПОЗИТРОН АТЕЛЬЕ', true)}
+        {cell(sx0, sy0, 185, 10, 'Исполнитель', executorName(profile), true)}
         {cell(sx0, sy0 + 10, 50, 10, 'Заказ №', order.number, true)}
         {cell(sx0 + 50, sy0 + 10, 135, 10, 'Заказчик', order.customer.name || '—')}
         {cell(sx0, sy0 + 20, 185, 10, 'Изделия', productNames)}

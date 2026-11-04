@@ -7,7 +7,7 @@ import { PhotoScene, photoMapping } from '../drawing/PhotoScene';
 import { DrawingSheet, SHEET_SIZE, type SheetFormat } from '../drawing/Sheet';
 import { useMaterials, usePhoto, useTech } from '../hooks';
 import { money, orderEstimate, qtyText, type OrderEstimate, type WindowEstimate } from '../model/estimate';
-import { emptyProfile } from '../model/factory';
+import { emptyProfile, executorName, signerShort } from '../model/factory';
 import { formatMm } from '../model/measurements';
 import { ORDER_STATUS_LABEL, PRODUCT_TYPE_LABEL, type AtelierProfile, type Order } from '../model/types';
 import { Seg, TopBar } from '../ui';
@@ -34,7 +34,7 @@ function DocHeader({ profile, order, title }: { profile: AtelierProfile; order: 
   return (
     <header className="doc-header">
       <div>
-        <div className="doc-atelier">{profile.name || 'ПОЗИТРОН АТЕЛЬЕ'}</div>
+        <div className="doc-atelier">{executorName(profile)}</div>
         {(profile.inn || profile.legalAddress) && (
           <div className="doc-small">
             {profile.inn && `ИНН ${profile.inn}`}
@@ -112,7 +112,7 @@ function EstimateDoc({ est, order, profile }: { est: OrderEstimate; order: Order
         </div>
       </div>
       <div className="doc-sign">
-        <div>Исполнитель ____________________ {profile.director}</div>
+        <div>Исполнитель ____________________ {signerShort(profile)}</div>
         <div>Заказчик ____________________ {order.customer.name}</div>
       </div>
     </section>
@@ -275,9 +275,9 @@ export function PrintPage({ id, doc, windowId }: { id: string; doc: string; wind
   const profile = useLiveQuery(getProfile, []) ?? emptyProfile();
   const [format, setFormat] = useState<SheetFormat>(savedFormat);
   const photosReady = useLiveQuery(() => db.photos.count(), []);
-  const [viewW, setViewW] = useState(() => window.innerWidth);
+  const [viewW, setViewW] = useState(() => document.documentElement.clientWidth);
   useEffect(() => {
-    const on = () => setViewW(window.innerWidth);
+    const on = () => setViewW(document.documentElement.clientWidth);
     window.addEventListener('resize', on);
     return () => window.removeEventListener('resize', on);
   }, []);
