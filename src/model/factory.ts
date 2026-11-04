@@ -1,4 +1,56 @@
-import type { AtelierProfile, Customer, Material, NumberingSettings, Order, Room, WindowItem } from './types';
+import type { AtelierProfile, Customer, Material, NumberingSettings, Order, Product, ProductType, Room, TechSettings, WindowItem } from './types';
+import { PRODUCT_TYPE_LABEL } from './types';
+
+/** Припуски по умолчанию. Ателье меняет их в настройках под свою технологию. */
+export const DEFAULT_TECH: TechSettings = {
+  topAllowance: 50,
+  bottomHem: 100,
+  sideHem: 50,
+  seamAllowance: 15,
+  roundStep: 100,
+  reservePercent: 0,
+  romanRodStep: 300,
+  romanPocket: 40,
+};
+
+const PRODUCT_DEFAULTS: Record<ProductType, Pick<Product, 'panels' | 'fullness' | 'color' | 'opacity'>> = {
+  classic: { panels: 2, fullness: 2, color: '#7d5f45', opacity: 1 },
+  tulle: { panels: 1, fullness: 2.5, color: '#f3f0e8', opacity: 0.55 },
+  roman: { panels: 1, fullness: 1, color: '#c8b69a', opacity: 1 },
+  roller: { panels: 1, fullness: 1, color: '#d9d3c5', opacity: 0.95 },
+};
+
+export function newProduct(type: ProductType): Product {
+  return {
+    id: uid(),
+    type,
+    name: PRODUCT_TYPE_LABEL[type].replace(/ \(.*\)/, ''),
+    ...PRODUCT_DEFAULTS[type],
+    tech: {},
+    note: '',
+  };
+}
+
+/** Дополняет окна, сохранённые старыми версиями, новыми полями */
+export function normalizeWindow(w: WindowItem): WindowItem {
+  return {
+    ...w,
+    extras: w.extras ?? [],
+    products: w.products ?? [],
+    cornice: w.cornice ?? { rows: 1 },
+    visual: w.visual ?? { open: 0.35, showDims: true },
+  };
+}
+
+export function normalizeOrder(o: Order): Order {
+  return {
+    ...o,
+    extraLines: o.extraLines ?? [],
+    discountPercent: o.discountPercent ?? 0,
+    priceOverrides: o.priceOverrides ?? {},
+    rooms: o.rooms.map((r) => ({ ...r, windows: r.windows.map(normalizeWindow) })),
+  };
+}
 
 export function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
@@ -29,6 +81,9 @@ export function newWindow(index: number): WindowItem {
     corniceMount: 'wall',
     extras: [],
     comment: '',
+    products: [],
+    cornice: { rows: 1 },
+    visual: { open: 0.35, showDims: true },
     updatedAt: Date.now(),
   };
 }
@@ -46,6 +101,9 @@ export function newOrder(number: string): Order {
     status: 'draft',
     customer: emptyCustomer(),
     rooms: [newRoom('Гостиная')],
+    extraLines: [],
+    discountPercent: 0,
+    priceOverrides: {},
     createdAt: now,
     updatedAt: now,
   };

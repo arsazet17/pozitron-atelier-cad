@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { db } from './db';
+import { db, getOrder } from './db';
 import type { Order } from './model/types';
 
 // ---------- маршруты (по хэшу: работает на GitHub Pages без настроек сервера) ----------
@@ -7,12 +7,14 @@ import type { Order } from './model/types';
 export type Route =
   | { page: 'orders' }
   | { page: 'order'; id: string }
-  | { page: 'window'; id: string; windowId: string }
+  | { page: 'window'; id: string; windowId: string; tab?: string }
+  | { page: 'print'; id: string; doc: string; windowId?: string }
   | { page: 'settings' };
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  if (parts[0] === 'order' && parts[1] && parts[2] === 'window' && parts[3]) return { page: 'window', id: parts[1], windowId: parts[3] };
+  if (parts[0] === 'order' && parts[1] && parts[2] === 'window' && parts[3]) return { page: 'window', id: parts[1], windowId: parts[3], tab: parts[4] };
+  if (parts[0] === 'print' && parts[1] && parts[2]) return { page: 'print', id: parts[1], doc: parts[2], windowId: parts[3] };
   if (parts[0] === 'order' && parts[1]) return { page: 'order', id: parts[1] };
   if (parts[0] === 'settings') return { page: 'settings' };
   return { page: 'orders' };
@@ -22,8 +24,13 @@ export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseRoute(location.hash));
   useEffect(() => {
     const on = () => {
-      setRoute(parseRoute(location.hash));
-      window.scrollTo(0, 0);
+      setRoute((prev) => {
+        const next = parseRoute(location.hash);
+        // переключение вкладок окна не прокручивает страницу наверх
+        const sameWindow = prev.page === 'window' && next.page === 'window' && prev.windowId === next.windowId;
+        if (!sameWindow) window.scrollTo(0, 0);
+        return next;
+      });
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
@@ -57,7 +64,7 @@ export function useOrderDoc(id: string) {
 
   useEffect(() => {
     let alive = true;
-    db.orders.get(id).then((o) => {
+    getOrder(id).then((o) => {
       if (!alive) return;
       current.current = o ?? null;
       setOrder(o ?? null);
@@ -122,7 +129,7 @@ export function TextField(props: {
   );
 }
 
-export function NumberField(props: { label: string; value: number | undefined; onChange: (v: number | undefined) => void; suffix?: string; step?: number }) {
+export function NumberField(props: { label: string; value: number | undefined; onChange: (v: number | undefined) => void; suffix?: string; step?: number; placeholder?: string }) {
   const [text, setText] = useState(props.value === undefined ? '' : String(props.value));
   const focused = useRef(false);
   useEffect(() => {
@@ -137,6 +144,7 @@ export function NumberField(props: { label: string; value: number | undefined; o
       <input
         inputMode="decimal"
         value={text}
+        placeholder={props.placeholder}
         onFocus={() => (focused.current = true)}
         onBlur={() => (focused.current = false)}
         onChange={(e) => {

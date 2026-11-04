@@ -851,3 +851,431 @@ dialog.sheet .sheet-actions {
     display: none;
   }
 }
+
+/* ---------- 1.0.2: фото, визуализация ---------- */
+
+.photo-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.photo-wrap {
+  background: #111;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.photo-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70dvh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (min-width: 960px) {
+  .photo-layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    align-items: start;
+  }
+  .photo-scene {
+    max-height: calc(100dvh - 200px);
+  }
+  .photo-wrap {
+    position: sticky;
+    top: calc(72px + var(--safe-top));
+  }
+}
+
+.color-input {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: none;
+  flex: none;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  min-height: 32px;
+}
+
+/* ---------- изделия ---------- */
+
+.narrow {
+  max-width: 900px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepper .btn {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 20px;
+}
+
+.stepper b {
+  min-width: 24px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.tech-details {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.tech-details summary {
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: 14px;
+  min-height: 32px;
+}
+
+.calc-summary {
+  margin-top: 12px;
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+
+.calc-grid span {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.calc-grid b {
+  font-size: 16px;
+}
+
+/* ---------- раскрой и смета ---------- */
+
+.fabric-block + .fabric-block {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.cutting-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 10px 0;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 -4px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.table .r {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 14px;
+}
+
+.steps li + li {
+  margin-top: 4px;
+}
+
+.price-input {
+  width: 96px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  text-align: right;
+}
+
+.price-input.overridden {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.total-row.big {
+  font-size: 18px;
+}
+
+.est-window {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.est-window a {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.extra-line {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.extra-name {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  font-weight: 550;
+  outline: none;
+}
+
+/* ---------- чертёж ---------- */
+
+.sheet-preview {
+  background: #8a8f96;
+  border-radius: var(--radius);
+  padding: 10px;
+  overflow: auto;
+}
+
+.sheet-preview .sheet-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 640px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- печать ---------- */
+
+.print-root {
+  background: #8a8f96;
+  min-height: 100dvh;
+}
+
+.print-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.print-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 8px 48px;
+}
+
+.print-page {
+  width: min(100%, var(--page-w));
+  background: #fff;
+  color: #111;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  font-family: Arial, Helvetica, sans-serif;
+  --ink: #111;
+  --ink-soft: #555;
+  --line: #ccc;
+  --paper: #fff;
+  --bg: #f6f6f6;
+}
+
+.print-page.sheet .sheet-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.print-page.flow {
+  padding: 12mm 14mm;
+  font-size: 11pt;
+}
+
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #111;
+}
+
+.doc-atelier {
+  font-weight: 700;
+  font-size: 13pt;
+}
+
+.doc-title {
+  font-weight: 700;
+  font-size: 15pt;
+}
+
+.doc-right {
+  text-align: right;
+}
+
+.doc-small {
+  font-size: 9pt;
+  color: #444;
+}
+
+.doc-table {
+  font-size: 10pt;
+}
+
+.doc-table .group-row td {
+  background: #f1f1f1;
+  font-weight: 700;
+}
+
+.doc-totals {
+  margin: 12px 0 0 auto;
+  width: min(100%, 320px);
+}
+
+.doc-totals > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.doc-totals .grand {
+  font-weight: 700;
+  font-size: 13pt;
+  border-top: 2px solid #111;
+  margin-top: 4px;
+  padding-top: 6px;
+}
+
+.doc-sign {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 28px;
+  font-size: 10pt;
+}
+
+.doc-p {
+  font-size: 10pt;
+  margin: 8px 0;
+}
+
+.doc-warn {
+  color: #c0392b;
+}
+
+.doc-block + .doc-block {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #ccc;
+  break-inside: avoid;
+}
+
+.doc-block h3 {
+  margin: 0 0 6px;
+}
+
+.doc-cut {
+  break-inside: avoid;
+}
+
+.doc-cut-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 95mm;
+  margin: 6px 0;
+}
+
+.doc-steps {
+  font-size: 9pt;
+  padding-left: 18px;
+}
+
+.doc-visual .photo-scene {
+  max-height: none;
+}
+
+@media print {
+  html,
+  body,
+  .print-root {
+    background: #fff !important;
+  }
+  .no-print,
+  .bottomnav,
+  .toast {
+    display: none !important;
+  }
+  .print-pages {
+    display: block;
+    padding: 0;
+  }
+  .print-page {
+    width: var(--page-w);
+    box-shadow: none;
+    break-after: page;
+    margin: 0;
+  }
+  .print-page.sheet {
+    height: var(--page-h);
+    overflow: hidden;
+  }
+  .print-page.sheet .sheet-svg {
+    width: var(--page-w);
+    height: var(--page-h);
+  }
+  .print-page:last-child {
+    break-after: auto;
+  }
+}

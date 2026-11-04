@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
-import { db, exportBackup, getNumbering, getProfile, importBackup, requestPersistentStorage, setSetting } from '../db';
-import { DEFAULT_NUMBERING, emptyProfile, formatOrderNumber, newMaterial } from '../model/factory';
-import { MATERIAL_KIND_LABEL, type AtelierProfile, type LegalForm, type Material, type MaterialKind, type NumberingSettings, type Unit } from '../model/types';
+import { db, exportBackup, getNumbering, getProfile, getTech, importBackup, requestPersistentStorage, setSetting } from '../db';
+import { DEFAULT_NUMBERING, DEFAULT_TECH, emptyProfile, formatOrderNumber, newMaterial } from '../model/factory';
+import { MATERIAL_KIND_LABEL, type AtelierProfile, type LegalForm, type Material, type MaterialKind, type NumberingSettings, type TechSettings, type Unit } from '../model/types';
 import { NumberField, SelectField, TextField, TopBar, toast } from '../ui';
 
 declare const __APP_VERSION__: string;
@@ -70,6 +70,17 @@ function MaterialDialog({ material, onClose }: { material: Material | null; onCl
                 Ткань «в высоту» (высота изделия по ширине рулона)
               </label>
             )}
+            {isFabric && (
+              <label className="switch">
+                <input type="color" className="color-input" value={m.color ?? '#c9a25d'} onChange={(e) => set({ color: e.target.value })} />
+                Цвет для визуализации
+                {m.color && (
+                  <button type="button" className="btn small" onClick={() => set({ color: undefined })}>
+                    сбросить
+                  </button>
+                )}
+              </label>
+            )}
             <TextField label="Примечание" value={m.note} onChange={(note) => set({ note })} />
           </div>
           <div className="sheet-actions">
@@ -109,6 +120,7 @@ function MaterialDialog({ material, onClose }: { material: Material | null; onCl
 export function SettingsPage() {
   const [profile, setProfile] = useSavedSetting<AtelierProfile>('profile', getProfile, emptyProfile());
   const [numbering, setNumbering] = useSavedSetting<NumberingSettings>('numbering', getNumbering, DEFAULT_NUMBERING);
+  const [tech, setTech] = useSavedSetting<TechSettings>('tech', getTech, DEFAULT_TECH);
   const materials = useLiveQuery(() => db.materials.orderBy('name').toArray(), []);
   const [editing, setEditing] = useState<Material | null>(null);
   const [persisted, setPersisted] = useState<boolean | undefined>();
@@ -193,6 +205,28 @@ export function SettingsPage() {
             <p className="small muted" style={{ marginBottom: 0 }}>
               Следующий заказ получит номер <b className="num">№ {formatOrderNumber(numbering.nextNumber, numbering.digits)}</b>.
             </p>
+          </div>
+        )}
+
+        <div className="section-title">Технология пошива (припуски по умолчанию)</div>
+        {tech && (
+          <div className="card">
+            <p className="small muted" style={{ marginTop: 0 }}>
+              Полный расход ткани на обработку, мм. Используется во всех расчётах; в отдельном изделии можно изменить.
+            </p>
+            <div className="grid2">
+              <NumberField label="Верх (под тесьму)" suffix="мм" value={tech.topAllowance} onChange={(v) => v !== undefined && v >= 0 && setTech({ topAllowance: Math.round(v) })} />
+              <NumberField label="Низ" suffix="мм" value={tech.bottomHem} onChange={(v) => v !== undefined && v >= 0 && setTech({ bottomHem: Math.round(v) })} />
+              <NumberField label="Боковой подгиб, на одну сторону" suffix="мм" value={tech.sideHem} onChange={(v) => v !== undefined && v >= 0 && setTech({ sideHem: Math.round(v) })} />
+              <NumberField label="Шов стачивания полос, на сторону" suffix="мм" value={tech.seamAllowance} onChange={(v) => v !== undefined && v >= 0 && setTech({ seamAllowance: Math.round(v) })} />
+              <NumberField label="Округление метража" suffix="мм" value={tech.roundStep} onChange={(v) => v !== undefined && v >= 0 && setTech({ roundStep: Math.round(v) })} />
+              <NumberField label="Запас ткани" suffix="%" value={tech.reservePercent} onChange={(v) => v !== undefined && v >= 0 && v < 100 && setTech({ reservePercent: v })} />
+              <NumberField label="Римская: шаг реек" suffix="мм" value={tech.romanRodStep} onChange={(v) => v && v > 50 && setTech({ romanRodStep: Math.round(v) })} />
+              <NumberField label="Римская: припуск на кулису" suffix="мм" value={tech.romanPocket} onChange={(v) => v !== undefined && v >= 0 && setTech({ romanPocket: Math.round(v) })} />
+            </div>
+            <button className="btn small" style={{ marginTop: 12 }} onClick={() => setTech(DEFAULT_TECH)}>
+              Вернуть значения по умолчанию
+            </button>
           </div>
         )}
 

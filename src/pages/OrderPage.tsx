@@ -5,6 +5,7 @@ import { newRoom, newWindow } from '../model/factory';
 import { completeness, resolveMeasures } from '../model/measurements';
 import { ORDER_STATUS_LABEL, type Customer, type OrderStatus, type Room, type WindowItem } from '../model/types';
 import { Seg, SelectField, TextField, TopBar, formatDate, go, toast, useOrderDoc } from '../ui';
+import { OrderEstimateCard } from './EstimateView';
 
 const STATUS_OPTIONS = (Object.keys(ORDER_STATUS_LABEL) as OrderStatus[]).map((s) => ({ value: s, label: ORDER_STATUS_LABEL[s] }));
 
@@ -152,6 +153,12 @@ export function OrderPage({ id }: { id: string }) {
           >
             + Помещение
           </button>
+        </div>
+
+        <div className="section-title">Смета заказа</div>
+        <OrderEstimateCard order={order} update={update} />
+
+        <div className="row" style={{ marginTop: 24 }}>
           <span className="spacer" />
           <button className="btn danger" onClick={removeOrder}>
             Удалить заказ

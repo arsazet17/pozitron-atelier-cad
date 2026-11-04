@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { db } from '../db';
 import { FacadeSchematic } from '../drawing/FacadeSchematic';
 import { uid } from '../model/factory';
 import {
@@ -14,17 +15,25 @@ import {
 } from '../model/measurements';
 import type { MeasureKey, Mm, WindowItem } from '../model/types';
 import { Seg, TextField, TopBar, go, useOrderDoc } from '../ui';
+import { EstimateTab } from './EstimateView';
+import type { TabProps } from './window/common';
+import { CuttingTab } from './window/CuttingTab';
+import { DrawingTab } from './window/DrawingTab';
+import { PhotoTab } from './window/PhotoTab';
+import { ProductsTab } from './window/ProductsTab';
+import { VisualTab } from './window/VisualTab';
 
 type Tab = 'photo' | 'measures' | 'products' | 'visual' | 'drawing' | 'cutting' | 'estimate';
 
-const TABS: { id: Tab; label: string; step?: number }[] = [
-  { id: 'photo', label: 'Фото', step: 2 },
-  { id: 'measures', label: 'Замеры' },
-  { id: 'products', label: 'Изделия', step: 5 },
-  { id: 'visual', label: 'Визуализация', step: 4 },
-  { id: 'drawing', label: 'Чертёж', step: 3 },
-  { id: 'cutting', label: 'Раскрой', step: 5 },
-  { id: 'estimate', label: 'Смета', step: 6 },
+/** Порядок вкладок повторяет порядок работы: фото → замеры → изделия → … → смета */
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'photo', label: '📷 Фото' },
+  { id: 'measures', label: '📏 Замеры' },
+  { id: 'products', label: '🧵 Изделия' },
+  { id: 'visual', label: '🖼 Визуализация' },
+  { id: 'drawing', label: '📐 Чертёж' },
+  { id: 'cutting', label: '✂️ Раскрой' },
+  { id: 'estimate', label: '💰 Смета' },
 ];
 
 const GROUPS: MeasureGroup[] = ['opening', 'wall', 'sill', 'radiator', 'cornice', 'product'];
@@ -98,33 +107,9 @@ function MmInput(props: {
   );
 }
 
-export function WindowPage({ id, windowId }: { id: string; windowId: string }) {
-  const { order, update } = useOrderDoc(id);
-  const [tab, setTab] = useState<Tab>('measures');
+function MeasuresTab({ order, win, resolved, setWin, update }: TabProps) {
   const [focus, setFocus] = useState<MeasureKey | undefined>();
   const inputs = useRef(new Map<MeasureKey, HTMLInputElement>());
-
-  const room = order?.rooms.find((r) => r.windows.some((w) => w.id === windowId));
-  const win = room?.windows.find((w) => w.id === windowId);
-  const resolved = useMemo(() => (win ? resolveMeasures(win) : undefined), [win]);
-
-  if (order === undefined) return <TopBar title="Загрузка…" back="/" />;
-  if (!order || !room || !win || !resolved) {
-    return (
-      <>
-        <TopBar title="Окно не найдено" back={order ? `/order/${order.id}` : '/'} />
-        <main>
-          <p className="muted">Окно удалено.</p>
-        </main>
-      </>
-    );
-  }
-
-  const setWin = (fn: (w: WindowItem) => WindowItem) =>
-    update((o) => ({
-      ...o,
-      rooms: o.rooms.map((r) => ({ ...r, windows: r.windows.map((w) => (w.id === windowId ? { ...fn(w), updatedAt: Date.now() } : w)) })),
-    }));
 
   const setMeasure = (key: MeasureKey, value: Mm | undefined) =>
     setWin((w) => {
@@ -156,7 +141,8 @@ export function WindowPage({ id, windowId }: { id: string; windowId: string }) {
 
   const removeWindow = () => {
     if (!confirm(`Удалить «${win.name}» со всеми замерами?`)) return;
-    update((o) => ({ ...o, rooms: o.rooms.map((r) => ({ ...r, windows: r.windows.filter((w) => w.id !== windowId) })) }));
+    update((o) => ({ ...o, rooms: o.rooms.map((r) => ({ ...r, windows: r.windows.filter((w) => w.id !== win.id) })) }));
+    if (win.photoId) void db.photos.delete(win.photoId);
     go(`/order/${order.id}`);
   };
 
@@ -164,31 +150,6 @@ export function WindowPage({ id, windowId }: { id: string; windowId: string }) {
   const focusDef = focus ? DEF_BY_KEY[focus] : undefined;
 
   return (
-    <>
-      <TopBar title={win.name} sub={`Заказ № ${order.number} · ${room.name}`} back={`/order/${order.id}`} />
-      <main>
-        <nav className="tabs" aria-label="Разделы окна">
-          {TABS.map((t) => (
-            <button key={t.id} className={(tab === t.id ? 'on' : '') + (t.step ? ' later' : '')} onClick={() => setTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </nav>
-
-        {tab !== 'measures' && (
-          <div className="card later-box">
-            <div className="big">🛠</div>
-            <h2>{TABS.find((t) => t.id === tab)!.label}</h2>
-            <p className="muted">
-              Этот раздел появится на шаге {TABS.find((t) => t.id === tab)!.step} разработки. Размеры, введённые в «Замерах», он возьмёт автоматически.
-            </p>
-            <button className="btn" onClick={() => setTab('measures')}>
-              К замерам
-            </button>
-          </div>
-        )}
-
-        {tab === 'measures' && (
           <div className="measure-layout">
             <div className="schematic-wrap">
               <FacadeSchematic win={win} resolved={resolved} focus={focus} errorKeys={errorKeys} onPick={pick} />
@@ -332,7 +293,60 @@ export function WindowPage({ id, windowId }: { id: string; windowId: string }) {
               </div>
             </div>
           </div>
-        )}
+  );
+}
+
+export function WindowPage({ id, windowId, tab: routeTab }: { id: string; windowId: string; tab?: string }) {
+  const { order, update } = useOrderDoc(id);
+  const tab: Tab = TABS.some((t) => t.id === routeTab) ? (routeTab as Tab) : 'measures';
+
+  const room = order?.rooms.find((r) => r.windows.some((w) => w.id === windowId));
+  const win = room?.windows.find((w) => w.id === windowId);
+  const resolved = useMemo(() => (win ? resolveMeasures(win) : undefined), [win]);
+
+  if (order === undefined) return <TopBar title="Загрузка…" back="/" />;
+  if (!order || !room || !win || !resolved) {
+    return (
+      <>
+        <TopBar title="Окно не найдено" back={order ? `/order/${order.id}` : '/'} />
+        <main>
+          <p className="muted">Окно удалено.</p>
+        </main>
+      </>
+    );
+  }
+
+  const setWin = (fn: (w: WindowItem) => WindowItem) =>
+    update((o) => ({
+      ...o,
+      rooms: o.rooms.map((r) => ({ ...r, windows: r.windows.map((w) => (w.id === windowId ? { ...fn(w), updatedAt: Date.now() } : w)) })),
+    }));
+  // вкладка хранится в адресе: «Назад» и обновление страницы возвращают на неё же
+  const goTab = (t: string) => location.replace(`#/order/${order.id}/window/${windowId}/${t}`);
+
+  const props: TabProps = { order, room, win, resolved, setWin, update, goTab };
+  const content: Record<Tab, () => ReactNode> = {
+    photo: () => <PhotoTab {...props} />,
+    measures: () => <MeasuresTab {...props} />,
+    products: () => <ProductsTab {...props} />,
+    visual: () => <VisualTab {...props} />,
+    drawing: () => <DrawingTab {...props} />,
+    cutting: () => <CuttingTab {...props} />,
+    estimate: () => <EstimateTab {...props} />,
+  };
+
+  return (
+    <>
+      <TopBar title={win.name} sub={`Заказ № ${order.number} · ${room.name}`} back={`/order/${order.id}`} />
+      <main>
+        <nav className="tabs" aria-label="Разделы окна">
+          {TABS.map((t) => (
+            <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => goTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        {content[tab]()}
       </main>
     </>
   );
