@@ -1,6 +1,6 @@
 {
   "name": "pozitron-atelier-cad",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "private": true,
   "description": "ПОЗИТРОН АТЕЛЬЕ CAD — проектирование штор и карнизов: замеры, чертёж, расчёт, смета",
   "type": "module",

@@ -20,7 +20,7 @@ export function productColor(p: Product, materials: Map<string, Material>): stri
 }
 
 function panelFolds(H: Matrix3, x: number, y: number, w: number, h: number, color: string, opacity: number, key: string): ReactNode {
-  const folds = Math.max(4, Math.min(60, Math.round(w / 85)));
+  const folds = Math.max(4, Math.min(36, Math.round(w / 110)));
   const sw = w / folds;
   const strips: ReactNode[] = [];
   for (let i = 0; i < folds; i++) {

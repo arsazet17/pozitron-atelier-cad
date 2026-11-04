@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { productColor, renderProducts } from '../../drawing/curtains';
 import { PhotoScene, photoMapping, sceneToPng } from '../../drawing/PhotoScene';
-import { useMaterials, usePhoto, useTech } from '../../hooks';
+import { useDeferredCommit, useMaterials, usePhoto, useTech } from '../../hooks';
+import type { Product } from '../../model/types';
 import { calcProduct } from '../../model/calc';
 import { newProduct } from '../../model/factory';
 import { toast } from '../../ui';
@@ -15,7 +16,26 @@ export function VisualTab({ order, win, resolved, setWin, goTab }: TabProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [saving, setSaving] = useState(false);
 
-  const items = useMemo(() => win.products.map((p) => ({ product: p, calc: calcProduct(p, { resolved, tech, materials }) })), [win.products, resolved, tech, materials]);
+  // Ползунки и выбор цвета меняют картинку сразу, а в заказ пишутся, когда палец остановился
+  const [open, setOpenLive] = useDeferredCommit(win.visual.open, (v) => setWin((w) => ({ ...w, visual: { ...w.visual, open: v } })));
+  const [live, setLive] = useState<Record<string, Partial<Product>>>({});
+  const pending = useRef<Record<string, Partial<Product>>>({});
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const patchLive = (id: string, patch: Partial<Product>) => {
+    pending.current = { ...pending.current, [id]: { ...pending.current[id], ...patch } };
+    setLive(pending.current);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      const all = pending.current;
+      pending.current = {};
+      setWin((w) => ({ ...w, products: w.products.map((p) => (all[p.id] ? { ...p, ...all[p.id] } : p)) }));
+      setLive({});
+    }, 250);
+  };
+  const products = useMemo(() => win.products.map((p) => (live[p.id] ? { ...p, ...live[p.id] } : p)), [win.products, live]);
+  const calcs = useMemo(() => new Map(win.products.map((p) => [p.id, calcProduct(p, { resolved, tech, materials })])), [win.products, resolved, tech, materials]);
+  const items = useMemo(() => products.map((p) => ({ product: p, calc: calcs.get(p.id)! })), [products, calcs]);
 
   if (!photo || !url) {
     return (
@@ -44,9 +64,6 @@ export function VisualTab({ order, win, resolved, setWin, goTab }: TabProps) {
     );
   }
 
-  const setOpen = (open: number) => setWin((w) => ({ ...w, visual: { ...w.visual, open } }));
-  const setProduct = (id: string, patch: Partial<(typeof win.products)[number]>) =>
-    setWin((w) => ({ ...w, products: w.products.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
 
   const save = async () => {
     if (!svgRef.current) return;
@@ -65,7 +82,7 @@ export function VisualTab({ order, win, resolved, setWin, goTab }: TabProps) {
     <div className="photo-layout">
       <div className="photo-wrap">
         <PhotoScene ref={svgRef} url={url} photo={photo}>
-          {renderProducts(map.H, map.geo, items, win.visual.open, materials)}
+          {renderProducts(map.H, map.geo, items, open, materials)}
           {win.visual.showDims && <PhotoDims map={map} photo={photo} resolved={resolved} showCornice={false} />}
         </PhotoScene>
       </div>
@@ -88,10 +105,10 @@ export function VisualTab({ order, win, resolved, setWin, goTab }: TabProps) {
           ) : (
             <>
               <label className="field">
-                <span>Шторы: {win.visual.open < 0.05 ? 'задёрнуты' : win.visual.open > 0.95 ? 'раздвинуты' : `приоткрыты на ${Math.round(win.visual.open * 100)}%`}</span>
-                <input type="range" min={0} max={100} value={Math.round(win.visual.open * 100)} onChange={(e) => setOpen(Number(e.target.value) / 100)} />
+                <span>Шторы: {open < 0.05 ? 'задёрнуты' : open > 0.95 ? 'раздвинуты' : `приоткрыты на ${Math.round(open * 100)}%`}</span>
+                <input type="range" min={0} max={100} value={Math.round(open * 100)} onChange={(e) => setOpenLive(Number(e.target.value) / 100)} />
               </label>
-              {win.products.map((p) => {
+              {products.map((p) => {
                 const fabric = p.fabricId ? materials.get(p.fabricId) : undefined;
                 return (
                   <div key={p.id} className="row" style={{ marginTop: 10, flexWrap: 'nowrap' }}>
@@ -100,7 +117,7 @@ export function VisualTab({ order, win, resolved, setWin, goTab }: TabProps) {
                       aria-label={`Цвет: ${p.name}`}
                       value={productColor(p, materials)}
                       disabled={!!fabric?.color}
-                      onChange={(e) => setProduct(p.id, { color: e.target.value })}
+                      onChange={(e) => patchLive(p.id, { color: e.target.value })}
                       className="color-input"
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -109,7 +126,7 @@ export function VisualTab({ order, win, resolved, setWin, goTab }: TabProps) {
                     </div>
                     <label className="small muted" style={{ width: 110 }}>
                       прозрачность
-                      <input type="range" min={20} max={100} value={Math.round(p.opacity * 100)} onChange={(e) => setProduct(p.id, { opacity: Number(e.target.value) / 100 })} style={{ width: '100%' }} />
+                      <input type="range" min={20} max={100} value={Math.round(p.opacity * 100)} onChange={(e) => patchLive(p.id, { opacity: Number(e.target.value) / 100 })} style={{ width: '100%' }} />
                     </label>
                   </div>
                 );

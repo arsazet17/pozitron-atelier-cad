@@ -75,6 +75,8 @@ export function PhotoTab({ win, resolved, setWin, goTab }: TabProps) {
   const [active, setActive] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const offset = useRef({ x: 0, y: 0 });
+  const frame = useRef(0);
+  const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -160,17 +162,37 @@ export function PhotoTab({ win, resolved, setWin, goTab }: TabProps) {
     setDraft(corners);
     svgRef.current.setPointerCapture(e.pointerId);
   };
+  // перерисовка не чаще одного раза за кадр экрана — палец двигается плавно
+  const pointAt = (clientX: number, clientY: number): Pt => {
+    const p = svgPoint(svgRef.current!, clientX, clientY);
+    return {
+      x: Math.min(1, Math.max(0, (p.x + offset.current.x) / photo.width)),
+      y: Math.min(1, Math.max(0, (p.y + offset.current.y) / photo.height)),
+    };
+  };
   const move = (e: React.PointerEvent<SVGSVGElement>) => {
     if (active === null || !svgRef.current) return;
-    const p = svgPoint(svgRef.current, e.clientX, e.clientY);
-    const x = Math.min(1, Math.max(0, (p.x + offset.current.x) / photo.width));
-    const y = Math.min(1, Math.max(0, (p.y + offset.current.y) / photo.height));
-    setDraft((d) => (d ?? corners).map((c, i) => (i === active ? { x, y } : c)));
+    lastPointer.current = { x: e.clientX, y: e.clientY };
+    if (frame.current) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0;
+      if (!svgRef.current || !lastPointer.current) return;
+      const pt = pointAt(lastPointer.current.x, lastPointer.current.y);
+      setDraft((d) => (d ?? corners).map((c, i) => (i === active ? pt : c)));
+    });
   };
   const up = () => {
     if (active === null) return;
+    cancelAnimationFrame(frame.current);
+    frame.current = 0;
+    // последнее положение пальца — даже если кадр ещё не успел перерисоваться
+    const final = lastPointer.current && svgRef.current ? (draft ?? corners).map((c, i) => (i === active ? pointAt(lastPointer.current!.x, lastPointer.current!.y) : c)) : draft;
+    lastPointer.current = null;
     setActive(null);
-    if (draft) setWin((w) => ({ ...w, photoCorners: draft }));
+    if (final) {
+      setDraft(final);
+      setWin((w) => ({ ...w, photoCorners: final }));
+    }
   };
 
   // лупа — в углу, противоположном точке, которую двигаем
@@ -206,7 +228,7 @@ export function PhotoTab({ win, resolved, setWin, goTab }: TabProps) {
     <div className="photo-layout">
       {pickers}
       <div className="photo-wrap">
-        <PhotoScene ref={svgRef} url={url} photo={photo} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+        <PhotoScene ref={svgRef} url={url} photo={photo} captureTouch={editing} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
           {!editing && <PhotoDims map={map} photo={photo} resolved={resolved} />}
           {editing && (
             <g data-noexport>

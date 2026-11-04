@@ -250,7 +250,7 @@ function CuttingDoc({ w, order, profile }: { w: WindowEstimate; order: Order; pr
 }
 
 function VisualDoc({ w, order, profile }: { w: WindowEstimate; order: Order; profile: AtelierProfile }) {
-  const { photo, url } = usePhoto(w.window.photoId);
+  const { photo, url } = usePhoto(w.window.photoId, true);
   const { map } = useMaterials();
   if (!photo || !url) return null;
   const mapping = photoMapping(w.window, w.resolved, photo);

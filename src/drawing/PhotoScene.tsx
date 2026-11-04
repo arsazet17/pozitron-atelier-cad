@@ -38,10 +38,12 @@ interface SceneProps {
   onPointerMove?: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerUp?: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerCancel?: (e: React.PointerEvent<SVGSVGElement>) => void;
+  /** Захватывать касания (разметка углов). Иначе фото прокручивается пальцем, как обычная картинка. */
+  captureTouch?: boolean;
 }
 
 /** Фото с наложенной графикой в координатах снимка */
-export const PhotoScene = forwardRef<SVGSVGElement, SceneProps>(function PhotoScene({ url, photo, children, ...handlers }, ref) {
+export const PhotoScene = forwardRef<SVGSVGElement, SceneProps>(function PhotoScene({ url, photo, children, captureTouch, ...handlers }, ref) {
   return (
     <svg
       ref={ref}
@@ -49,7 +51,7 @@ export const PhotoScene = forwardRef<SVGSVGElement, SceneProps>(function PhotoSc
       viewBox={`0 0 ${photo.width} ${photo.height}`}
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"
-      style={{ touchAction: 'none' }}
+      style={{ touchAction: captureTouch ? 'none' : 'auto' }}
       {...handlers}
     >
       <image href={url} x={0} y={0} width={photo.width} height={photo.height} preserveAspectRatio="none" />
